@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src="http://code.jquery.com/jquery-1.11.2.min.js"></script>
+	</head>
+	<body>
+		<canvas class="Rasterizer" width="1000" height="1000"></canvas>
+<script>
+var Rasterizer = {};
+Rasterizer.Instances = [];
+Rasterizer.Create = function(inJQCanvas)
+{
+	var obj = {};
+	
+	obj.Math = {};
+	obj.Math.Min = [-1, -1];
+	obj.Math.Max = [1, 1];
+
+	obj.JQ = {};
+	obj.JQ.Canvas = inJQCanvas;
+	
+	obj.Canvas = obj.JQ.Canvas.get(0).getContext("2d");
+	
+	Rasterizer.Instances.push(obj);
+	return obj;
+};
+Rasterizer.FillStyle = function(inRasterizer, inR, inG, inB)
+{
+	inR = Math.floor(inR*255);
+	inG = Math.floor(inG*255);
+	inB = Math.floor(inB*255);
+	inRasterizer.Canvas.fillStyle = "rgba("+inR+","+inG+","+inB+",255)";				
+};
+Rasterizer.ColorClear = function(inRasterizer, inR, inG, inB)
+{
+	Rasterizer.FillStyle(inRasterizer, inR, inG, inB);
+	inRasterizer.Canvas.fillRect( 0, 0, inRasterizer.Canvas.canvas.width, inRasterizer.Canvas.canvas.height);
+};
+Rasterizer.ColorSet = function(inRasterizer, inR, inG, inB, inX, inY)
+{
+	Rasterizer.FillStyle(inRasterizer, inR, inG, inB);
+	inRasterizer.Canvas.fillRect( inX, inY, 1, 1 );
+};
+Rasterizer.Iterate = function(inRasterizer, inFunction)
+{
+	var width = inRasterizer.Canvas.canvas.width;
+	var height = inRasterizer.Canvas.canvas.height
+	var xPos, yPos;
+	var xPerc, yPerc;
+	var xMath, yMath;
+	var output;
+	
+	for(xPos = 0; xPos<width; xPos++)
+	{
+		xPerc = xPos/width;
+		xMath = inRasterizer.Math.Min[0] + xPerc*(inRasterizer.Math.Max[0] - inRasterizer.Math.Min[0]);
+		
+		for(yPos=0; yPos<height; yPos++)
+		{
+			yPerc = yPos/height;
+			yMath = inRasterizer.Math.Min[1] + yPerc*(inRasterizer.Math.Max[1] - inRasterizer.Math.Min[1]);
+			
+			output = inFunction(xMath, yMath);
+			if(output)
+			{
+				Rasterizer.ColorSet(inRasterizer, output[0], output[1], output[2], xPos, yPos)
+			}
+		}
+	}
+};
+</script>
+
+<script> 
+
+var Fractal = {};
+Fractal.Brightness = function(inSeed, inConstant, inCount)
+{
+	var i;
+	for(i=0; i<inCount; i++)
+	{
+		var x = inSeed[0]*inSeed[0] - inSeed[1]*inSeed[1] + inConstant[0];
+		var y = inSeed[0]*inSeed[1] + inSeed[0]*inSeed[1] + inConstant[1];
+		
+		if(isNaN(x) || isNaN(y))
+			break;
+			
+		inSeed[0] = x;
+		inSeed[1] = y;
+	}
+	return i/inCount;
+};
+
+var r1 = Rasterizer.Create($("canvas"));
+r1.Math.Min = [-1, -1];
+r1.Math.Max = [1, 1];
+Rasterizer.Iterate(r1, function(inX, inY)
+{
+	//julia
+	/**/
+	var seed = [inX, inY]
+	var constant = [-0.229, 0.695];
+	
+
+	//mandlebrot
+	/*
+	var seed = [0, 0];
+	var constant = [inX, inY];
+	*/
+
+	
+	var brightness = Fractal.Brightness(seed, constant, 100)*2;
+	if(brightness === 0)
+		return [brightness, 0, 0];
+	else
+		return [brightness, brightness, brightness];
+});
+
+</script>
+
+	</body>
+</html>
