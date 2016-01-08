@@ -4,7 +4,7 @@
 		<script src="http://code.jquery.com/jquery-1.11.2.min.js"></script>
 	</head>
 	<body>
-		<canvas class="Rasterizer" width="1000" height="1000"></canvas>
+		<canvas class="Rasterizer" width="3000" height="3000"></canvas>
 <script>
 var Rasterizer = {};
 Rasterizer.Instances = [];
@@ -68,6 +68,35 @@ Rasterizer.Iterate = function(inRasterizer, inFunction)
 		}
 	}
 };
+Rasterizer.IterateRow = function(inRasterizer, inStart, inStop, inFunction)
+{
+	var width = inRasterizer.Canvas.canvas.width;
+	var height = inRasterizer.Canvas.canvas.height;
+	var xPos, yPos;
+	var xPerc, yPerc;
+	var xMath, yMath;
+	var output;
+	
+	
+	
+	for(xPos = 0; xPos<width; xPos++)
+	{
+		xPerc = xPos/width;
+		xMath = inRasterizer.Math.Min[0] + xPerc*(inRasterizer.Math.Max[0] - inRasterizer.Math.Min[0]);
+		
+		for(yPos=inStart; yPos<inStop; yPos++)
+		{
+			yPerc = yPos/height;
+			yMath = inRasterizer.Math.Min[1] + yPerc*(inRasterizer.Math.Max[1] - inRasterizer.Math.Min[1]);
+			
+			output = inFunction(xMath, yMath);
+			if(output)
+			{
+				Rasterizer.ColorSet(inRasterizer, output[0], output[1], output[2], xPos, yPos)
+			}
+		}
+	}
+};
 </script>
 
 <script> 
@@ -93,27 +122,51 @@ Fractal.Brightness = function(inSeed, inConstant, inCount)
 var r1 = Rasterizer.Create($("canvas"));
 r1.Math.Min = [-1, -1];
 r1.Math.Max = [1, 1];
-Rasterizer.Iterate(r1, function(inX, inY)
+
+var Breathe = {};
+Breathe.RangeStart = 0;
+Breathe.RangeStride = 111;
+Breathe.Delay = 20;
+Breathe.Time = false;
+Breathe.Rasterizer = r1;
+Breathe.Process = function()
 {
-	//julia
-	/**/
-	var seed = [inX, inY]
-	var constant = [-0.229, 0.695];
+	Rasterizer.IterateRow(Breathe.Rasterizer, Breathe.RangeStart, Breathe.RangeStart + Breathe.RangeStride, function(inX, inY)
+	{
+		var seed = [inX, inY];
+		//var constant = [0.285, 0.01];
+		var constant = [-0.229, 0.695];
+		var brightness = Fractal.Brightness(seed, constant, 100);
+		
+		if(brightness === 0)
+			return [brightness, 0, 0];
+		else
+			return [brightness, brightness, brightness];
+	});
+	Breathe.RangeStart += Breathe.RangeStride;
+	Breathe.RangeStop = Breathe.RangeStart + Breathe.RangeStride;	
 	
-
-	//mandlebrot
-	/*
-	var seed = [0, 0];
-	var constant = [inX, inY];
-	*/
-
-	
-	var brightness = Fractal.Brightness(seed, constant, 100)*2;
-	if(brightness === 0)
-		return [brightness, 0, 0];
-	else
-		return [brightness, brightness, brightness];
-});
+	if(Breathe.RangeStart >= Breathe.Rasterizer.Canvas.canvas.height )
+		return false;
+	return true;
+};
+Breathe.HandlerDelay = function()
+{
+	if(Breathe.Process())
+	{
+		Breathe.Time = setTimeout(Breathe.HandlerDelay, Breathe.Delay);
+	}
+};
+Breathe.Stop = function()
+{
+	clearInterval(Breathe.Time);
+	console.log("stopped");
+};
+Breathe.Start = function()
+{
+	Breathe.Time = setTimeout(Breathe.HandlerDelay, Breathe.Delay);
+};
+Breathe.Start();
 
 </script>
 
